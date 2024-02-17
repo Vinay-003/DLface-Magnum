@@ -1,34 +1,43 @@
-# import all libraires
-from io import BytesIO
-from flask import Flask, render_template, request, send_file
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, request, render_template ,url_for
+from form import RegistrationForm , LoginForm
+import os
 
-# Initialize flask and create sqlite database
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+app.config["SECRET_KEY"] = 'd270389871942afca232a044ca2a6f35'
+# Define a route to render the HTML form
+# @app.route('/')
+# def index():
+#     return render_template('index.html')
 
-# create datatable
-class Upload(db.Model):
-	id = db.Column(db.Integer, primary_key=True)
-	filename = db.Column(db.String(50))
-	data = db.Column(db.LargeBinary)
+@app.route('/')
+def upload_form():
+    return render_template('upload.html')
 
-# Create index function for upload and return files
-@app.route('/', methods=['GET', 'POST'])
-def index():
-	if request.method == 'POST':
-		file = request.files['file']
-		upload = Upload(filename=file.filename, data=file.read())
-		db.session.add(upload)
-		db.session.commit()
-		return f'Uploaded: {file.filename}'
-	return render_template('index.html')
+@app.route('/register')
+def register():
+    form = RegistrationForm()
+    return render_template('register.html', title='Register', form=form)
 
-# create download function for download files
-@app.route('/download/<upload_id>')
-def download(upload_id):
-	upload = Upload.query.filter_by(id=upload_id).first()
-	return send_file(BytesIO(upload.data), 
-					download_name=upload.filename, as_attachment=True)
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    return render_template('login.html', title='Login', form=form)
+
+# Define a route to handle the image upload
+@app.route('/upload', methods=['POST'])
+def upload_image():
+    if 'file' not in request.files:
+        return 'No file part'
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return 'No selected file'
+
+    if file:
+        # Save the uploaded file to a designated folder
+        file.save(os.path.join('uploads', file.filename))
+        return 'File uploaded successfully'
+
+if __name__ == '__main__':
+    app.run(host='10.100.201.111', debug=True, port = 6969)
